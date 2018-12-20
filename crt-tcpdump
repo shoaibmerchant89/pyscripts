@@ -1,0 +1,304 @@
+# $language = "python"
+# $interface = "1.0"
+
+# Function to replace characters in a string
+
+def replace_str_index(text,index=0,replacement=''):
+    return '%s%s%s'%(text[:index],replacement,text[index+1:])
+
+def main():
+	# Prompt for tcpdump switches that are required
+	
+	#DATE_req = crt.Dialog.Prompt("Do you want to view Date stamp? (y or n)").lower()
+	VLAN_req = crt.Dialog.Prompt("Do you want to view VLAN tags? (y or n)").lower()
+	VERBOSE_req = crt.Dialog.Prompt("Do you want to view verbose detail? (y or n)").lower()
+	#NAMERES_req = crt.Dialog.Prompt("Do you want to resolve host and port names? (y or n)").lower()
+
+	# *********** VLAN *********** cmd1
+	
+	if VLAN_req == ('n') and VERBOSE_req == ('n') :
+		cmd1a = "tcpdump -nni 0.0 "
+	if VLAN_req == ('y') and VERBOSE_req == ('y') :
+		cmd1b = "tcpdump -evnni 0.0 "
+	if VLAN_req == ('y') and VERBOSE_req == ('n') :
+		cmd1c = "tcpdump -enni 0.0 "
+	if VLAN_req == ('n') and VERBOSE_req == ('y') :
+		cmd1d = "tcpdump -vnni 0.0 "
+	
+	# *********** COUNT *********** cmd2
+	
+	COUNT = crt.Dialog.Prompt("Enter the number of packets you want to capture (max 1000)")
+	c = int(COUNT)
+	if VLAN_req == ('n') and VERBOSE_req == ('n') and c < 1001 :
+		cmd2a = cmd1a + "-c %s " % (COUNT)
+	if VLAN_req == ('y') and VERBOSE_req == ('y') and c < 1001 :
+		cmd2b = cmd1b + "-c %s " % (COUNT)
+	if VLAN_req == ('y') and VERBOSE_req == ('n') and c < 1001 :
+		cmd2c = cmd1c + "-c %s " % (COUNT)
+	if VLAN_req == ('n') and VERBOSE_req == ('y') and c < 1001 :
+		cmd2d = cmd1d + "-c %s " % (COUNT)
+
+	if c > 1000 :
+		crt.Screen.Send (' *** Count should not exceed 1000 ***')
+
+	# *********** SNAP *********** cmd3
+
+	snap = crt.Dialog.Prompt("Enter the snap length you want to capture (0 or 200)")
+
+	if VLAN_req == ('n') and VERBOSE_req == ('n') and c < 1001 :
+		cmd3a = cmd2a + "-s%s " % (snap)
+	if VLAN_req == ('y') and VERBOSE_req == ('y') and c < 1001 :
+		cmd3b = cmd2b + "-s%s " % (snap)
+	if VLAN_req == ('y') and VERBOSE_req == ('n') and c < 1001 :
+		cmd3c = cmd2c + "-s%s " % (snap)
+	if VLAN_req == ('n') and VERBOSE_req == ('y') and c < 1001 :
+		cmd3d = cmd2d + "-s%s " % (snap)
+
+	#else:
+	#	crt.Screen.Send (' *** Snaplength should be either 0 or 200')
+    #
+	# *********** VERSION CHECK *********** cmd4
+    #
+	
+	VERSION_check = crt.Dialog.Prompt("Do you want to check the BIGIP version? (y or n)").lower()
+
+	if VERSION_check == ('y') :
+		cmdoutput = "Version"
+		crt.Screen.IgnoreEscape = True
+		cmd4 = 'tmsh show sys version | grep \'Version \''
+		crt.Screen.Send(cmd4 + "\r\n")
+		crt.Screen.WaitForString(cmd4 + "\r\n")
+		szResult = crt.Screen.ReadString(cmdoutput)
+		crt.Screen.Send(szResult)
+		
+	# *********** Version GREATER than 11.2 - then add :nnp *********** cmd4a
+	
+	VERSION_req = crt.Dialog.Prompt("Is the BIGIP version greater than 11.2? (y or n)").lower()
+
+	if VLAN_req == ('n') and VERBOSE_req == ('n') and c < 1001 and VERSION_req == ('y') :
+		cmd4aa = replace_str_index(cmd3a,16,':nnp ')
+	if VLAN_req == ('y') and VERBOSE_req == ('y') and c < 1001 and VERSION_req == ('y') :
+		cmd4ab = replace_str_index(cmd3b,18,':nnp ')
+	if VLAN_req == ('y') and VERBOSE_req == ('n') and c < 1001 and VERSION_req == ('y') :
+		cmd4ac = replace_str_index(cmd3c,17,':nnp ')
+	if VLAN_req == ('n') and VERBOSE_req == ('y') and c < 1001 and VERSION_req == ('y') :
+		cmd4ad = replace_str_index(cmd3d,17,':nnp ')
+	
+	# *********** Version LOWER than 11.2 - then do nothing *********** cmd4b
+		
+	if VLAN_req == ('n') and VERBOSE_req == ('n') and c < 1001 and VERSION_req == ('n') :
+		cmd4ba = cmd3a
+	if VLAN_req == ('y') and VERBOSE_req == ('y') and c < 1001 and VERSION_req == ('n') :
+		cmd4bb = cmd3b
+	if VLAN_req == ('y') and VERBOSE_req == ('n') and c < 1001 and VERSION_req == ('n') :
+		cmd4bc = cmd3c
+	if VLAN_req == ('n') and VERBOSE_req == ('y') and c < 1001 and VERSION_req == ('n') :
+		cmd4bd = cmd3d
+
+	# *********** USER INPUT - Version GREATER than 11.2 - then ask CLIENTIP or VIP IP ***********
+	
+	if VERSION_req == ('y') :
+		CLIENT_req1 = crt.Dialog.Prompt("Do you have the Client IP? (y or n)")
+		if CLIENT_req1 == ('y') :
+			CLIENTIP_1 = crt.Dialog.Prompt("Enter the Client IP").lower()
+		else:
+			()
+		if CLIENT_req1 == ('n') :
+			VIP_1 = crt.Dialog.Prompt("Enter the VIP").lower()
+		else:
+			()
+	else:
+		()
+			
+	# *********** USER INPUT - Version LOWER than 11.2 - then ask CLIENTIP, VIP IP and SNAT IP ***********
+
+	if VERSION_req == ('n') :
+		CLIENT_req1 = crt.Dialog.Prompt("Do you have the Client IP? (y or n)")
+		if CLIENT_req1 == ('y') :
+			CLIENTIP_1 = crt.Dialog.Prompt("Enter the Client IP").lower()
+			VIP_1 = crt.Dialog.Prompt("Enter the VIP").lower()
+			SNAT_1 = crt.Dialog.Prompt("Enter the SNAT").lower()
+		else:
+			()
+		if CLIENT_req1 == ('n') :
+			VIP_1 = crt.Dialog.Prompt("Enter the VIP").lower()
+			SNAT_1 = crt.Dialog.Prompt("Enter the SNAT").lower()
+		else:
+			()
+	else:
+		()
+			
+	# *********** Version GREATER than 11.2 - using CLIENTIP *********** cmd5a
+
+	if VLAN_req == ('n') and VERBOSE_req == ('n') and c < 1001 and VERSION_req == ('y') and CLIENT_req1 ==('y') :
+		cmd5aa = cmd4aa + "host %s " % (CLIENTIP_1)
+	if VLAN_req == ('y') and VERBOSE_req == ('y') and c < 1001 and VERSION_req == ('y') and CLIENT_req1 ==('y') :
+		cmd5ab = cmd4ab + "host %s " % (CLIENTIP_1)
+	if VLAN_req == ('y') and VERBOSE_req == ('n') and c < 1001 and VERSION_req == ('y') and CLIENT_req1 ==('y') :
+		cmd5ac = cmd4ac + "host %s " % (CLIENTIP_1)
+	if VLAN_req == ('n') and VERBOSE_req == ('y') and c < 1001 and VERSION_req == ('y') and CLIENT_req1 ==('y') :
+		cmd5ad = cmd4ad + "host %s " % (CLIENTIP_1)
+
+	# *********** Version GREATER than 11.2 - using VIP *********** cmd5b
+
+	if VLAN_req == ('n') and VERBOSE_req == ('n') and c < 1001 and VERSION_req == ('y') and CLIENT_req1 ==('n') :
+		cmd5ba = cmd4aa + "host %s " % (VIP_1)
+	if VLAN_req == ('y') and VERBOSE_req == ('y') and c < 1001 and VERSION_req == ('y') and CLIENT_req1 ==('n') :
+		cmd5bb = cmd4ab + "host %s " % (VIP_1)
+	if VLAN_req == ('y') and VERBOSE_req == ('n') and c < 1001 and VERSION_req == ('y') and CLIENT_req1 ==('n') :
+		cmd5bc = cmd4ac + "host %s " % (VIP_1)
+	if VLAN_req == ('n') and VERBOSE_req == ('y') and c < 1001 and VERSION_req == ('y') and CLIENT_req1 ==('n') :
+		cmd5bd = cmd4ad + "host %s " % (VIP_1)
+
+	# *********** CAPTURES - version GREATER than 11.2 *********** cmd6
+		
+	CAPTURE_req = crt.Dialog.Prompt("Do you want to save the packet capture to a file? (y or n)").lower()
+
+	if CAPTURE_req == ('y') :
+		CAPTURE = crt.Dialog.Prompt("Please specify the capture file name with any extensions.")
+
+	# *********** Version GREATER than 11.2 - CLIENTIP and CAPTURE = YES *********** cmd6a
+
+	if VLAN_req == ('n') and VERBOSE_req == ('n') and c < 1001 and VERSION_req == ('y') and CLIENT_req1 ==('y') and CAPTURE_req == ('y') :
+		cmd6aa = cmd5aa + "-w /tmp/%s.pcap" % (CAPTURE)
+		crt.Screen.Send (cmd6aa)
+	if VLAN_req == ('y') and VERBOSE_req == ('y') and c < 1001 and VERSION_req == ('y') and CLIENT_req1 ==('y') and CAPTURE_req == ('y') :
+		cmd6ab = cmd5ab + "-w /tmp/%s.pcap" % (CAPTURE)
+		crt.Screen.Send (cmd6ab)
+	if VLAN_req == ('y') and VERBOSE_req == ('n') and c < 1001 and VERSION_req == ('y') and CLIENT_req1 ==('y') and CAPTURE_req == ('y') :
+		cmd6ac = cmd5ac + "-w /tmp/%s.pcap" % (CAPTURE)
+		crt.Screen.Send (cmd6ac)
+	if VLAN_req == ('n') and VERBOSE_req == ('y') and c < 1001 and VERSION_req == ('y') and CLIENT_req1 ==('y') and CAPTURE_req == ('y') :
+		cmd6ad = cmd5ad + "-w /tmp/%s.pcap" % (CAPTURE)
+		crt.Screen.Send (cmd6ad)
+	
+	# *********** Version GREATER than 11.2 - VIP - CAPTURE = YES *********** cmd6b
+
+	if VLAN_req == ('n') and VERBOSE_req == ('n') and c < 1001 and VERSION_req == ('y') and CLIENT_req1 ==('n') and CAPTURE_req == ('y') :
+		cmd6ba = cmd5ba + "-w /tmp/%s.pcap" % (CAPTURE)
+		crt.Screen.Send (cmd6ba)
+	if VLAN_req == ('y') and VERBOSE_req == ('y') and c < 1001 and VERSION_req == ('y') and CLIENT_req1 ==('n') and CAPTURE_req == ('y') :
+		cmd6bb = cmd5bb + "-w /tmp/%s.pcap" % (CAPTURE)
+		crt.Screen.Send (cmd6bb)
+	if VLAN_req == ('y') and VERBOSE_req == ('n') and c < 1001 and VERSION_req == ('y') and CLIENT_req1 ==('n') and CAPTURE_req == ('y') :
+		cmd6bc = cmd5bc + "-w /tmp/%s.pcap" % (CAPTURE)
+		crt.Screen.Send (cmd6bc)
+	if VLAN_req == ('n') and VERBOSE_req == ('y') and c < 1001 and VERSION_req == ('y') and CLIENT_req1 ==('n') and CAPTURE_req == ('y') :
+		cmd6bd = cmd5bd + "-w /tmp/%s.pcap" % (CAPTURE)
+		crt.Screen.Send (cmd6bd)
+	
+	# *********** Version GREATER than 11.2 - CLIENTIP - CAPTURE = NO *********** cmd6c
+		
+	if VLAN_req == ('n') and VERBOSE_req == ('n') and c < 1001 and VERSION_req == ('y') and CLIENT_req1 ==('y') and CAPTURE_req == ('n') :
+		cmd6ca = cmd5aa
+		crt.Screen.Send (cmd6ca)
+	if VLAN_req == ('y') and VERBOSE_req == ('y') and c < 1001 and VERSION_req == ('y') and CLIENT_req1 ==('y') and CAPTURE_req == ('n') :
+		cmd6cb = cmd5ab
+		crt.Screen.Send (cmd6cb)
+	if VLAN_req == ('y') and VERBOSE_req == ('n') and c < 1001 and VERSION_req == ('y') and CLIENT_req1 ==('y') and CAPTURE_req == ('n') :
+		cmd6cc = cmd5ac
+		crt.Screen.Send (cmd6cc)
+	if VLAN_req == ('n') and VERBOSE_req == ('y') and c < 1001 and VERSION_req == ('y') and CLIENT_req1 ==('y') and CAPTURE_req == ('n') :
+		cmd6cd = cmd5ad
+		crt.Screen.Send (cmd6cd)
+		
+	# *********** Version GREATER than 11.2 - VIP - CAPTURE = NO *********** cmd6d
+
+	if VLAN_req == ('n') and VERBOSE_req == ('n') and c < 1001 and VERSION_req == ('y') and CLIENT_req1 ==('n') and CAPTURE_req == ('n') :
+		cmd6da = cmd5ba
+		crt.Screen.Send (cmd6da)
+	if VLAN_req == ('y') and VERBOSE_req == ('y') and c < 1001 and VERSION_req == ('y') and CLIENT_req1 ==('n') and CAPTURE_req == ('n') :
+		cmd6db = cmd5bb
+		crt.Screen.Send (cmd6db)
+	if VLAN_req == ('y') and VERBOSE_req == ('n') and c < 1001 and VERSION_req == ('y') and CLIENT_req1 ==('n') and CAPTURE_req == ('n') :
+		cmd6dc = cmd5bc
+		crt.Screen.Send (cmd6dc)
+	if VLAN_req == ('n') and VERBOSE_req == ('y') and c < 1001 and VERSION_req == ('y') and CLIENT_req1 ==('n') and CAPTURE_req == ('n') :
+		cmd6dd = cmd5bd
+		crt.Screen.Send (cmd6dd)
+
+	# *********** Version LOWER than 11.2 - using CLIENTIP, VIP and SNAT *********** cmd7a
+	# *********** Version LOWER than 11.2 - using CLIENTIP, VIP and SNAT *********** cmd7a
+	# *********** Version LOWER than 11.2 - using CLIENTIP, VIP and SNAT *********** cmd7a
+
+	if VLAN_req == ('n') and VERBOSE_req == ('n') and c < 1001 and VERSION_req == ('n') and CLIENT_req1 ==('y') :
+		cmd7aa = cmd4ba + "\"( host %s and host %s ) or host %s\"" % (CLIENTIP_1, VIP_1, SNAT_1)
+	if VLAN_req == ('y') and VERBOSE_req == ('y') and c < 1001 and VERSION_req == ('n') and CLIENT_req1 ==('y') :
+		cmd7ab = cmd4bb + "\"( host %s and host %s ) or host %s\"" % (CLIENTIP_1, VIP_1, SNAT_1)
+	if VLAN_req == ('y') and VERBOSE_req == ('n') and c < 1001 and VERSION_req == ('n') and CLIENT_req1 ==('y') :
+		cmd7ac = cmd4bc + "\"( host %s and host %s ) or host %s\"" % (CLIENTIP_1, VIP_1, SNAT_1)
+	if VLAN_req == ('n') and VERBOSE_req == ('y') and c < 1001 and VERSION_req == ('n') and CLIENT_req1 ==('y') :
+		cmd7ad = cmd4bd + "\"( host %s and host %s ) or host %s\"" % (CLIENTIP_1, VIP_1, SNAT_1)
+
+	# *********** Version LOWER than 11.2 - using VIP and SNAT *********** cmd7b
+
+	if VLAN_req == ('n') and VERBOSE_req == ('n') and c < 1001 and VERSION_req == ('n') and CLIENT_req1 ==('n') :
+		cmd7ba = cmd4ba + "host %s or host %s" % (VIP_1, SNAT_1)
+	if VLAN_req == ('y') and VERBOSE_req == ('y') and c < 1001 and VERSION_req == ('n') and CLIENT_req1 ==('n') :
+		cmd7bb = cmd4bb + "host %s or host %s" % (VIP_1, SNAT_1)
+	if VLAN_req == ('y') and VERBOSE_req == ('n') and c < 1001 and VERSION_req == ('n') and CLIENT_req1 ==('n') :
+		cmd7bc = cmd4bc + "host %s or host %s" % (VIP_1, SNAT_1)
+	if VLAN_req == ('n') and VERBOSE_req == ('y') and c < 1001 and VERSION_req == ('n') and CLIENT_req1 ==('n') :
+		cmd7bd = cmd4bd + "host %s or host %s" % (VIP_1, SNAT_1)
+
+	# *********** Version LOWER than 11.2 - using CLIENTIP, VIP and SNAT - CAPTURE = YES *********** cmd8a
+
+	if VLAN_req == ('n') and VERBOSE_req == ('n') and c < 1001 and VERSION_req == ('n') and CLIENT_req1 ==('y') and CAPTURE_req == ('y') :
+		cmd8aa = cmd7aa + " -w /tmp/%s.pcap" % (CAPTURE)
+		crt.Screen.Send (cmd8aa)
+	if VLAN_req == ('y') and VERBOSE_req == ('y') and c < 1001 and VERSION_req == ('n') and CLIENT_req1 ==('y') and CAPTURE_req == ('y') :
+		cmd8ab = cmd7ab + " -w /tmp/%s.pcap" % (CAPTURE)
+		crt.Screen.Send (cmd8ab)
+	if VLAN_req == ('y') and VERBOSE_req == ('n') and c < 1001 and VERSION_req == ('n') and CLIENT_req1 ==('y') and CAPTURE_req == ('y') :
+		cmd8ac = cmd7ac + " -w /tmp/%s.pcap" % (CAPTURE)
+		crt.Screen.Send (cmd8ac)
+	if VLAN_req == ('n') and VERBOSE_req == ('y') and c < 1001 and VERSION_req == ('n') and CLIENT_req1 ==('y') and CAPTURE_req == ('y') :
+		cmd8ad = cmd7ad + " -w /tmp/%s.pcap" % (CAPTURE)
+		crt.Screen.Send (cmd8ad)
+
+	# *********** Version LOWER than 11.2 - using VIP and SNAT - CAPTURE = YES *********** cmd8b
+
+	if VLAN_req == ('n') and VERBOSE_req == ('n') and c < 1001 and VERSION_req == ('n') and CLIENT_req1 ==('n') and CAPTURE_req == ('y') :
+		cmd8ba = cmd7ba + " -w /tmp/%s.pcap" % (CAPTURE)
+		crt.Screen.Send (cmd8ba)
+	if VLAN_req == ('y') and VERBOSE_req == ('y') and c < 1001 and VERSION_req == ('n') and CLIENT_req1 ==('n') and CAPTURE_req == ('y') :
+		cmd8bb = cmd7bb + " -w /tmp/%s.pcap" % (CAPTURE)
+		crt.Screen.Send (cmd8bb)
+	if VLAN_req == ('y') and VERBOSE_req == ('n') and c < 1001 and VERSION_req == ('n') and CLIENT_req1 ==('n') and CAPTURE_req == ('y') :
+		cmd8bc = cmd7bc + " -w /tmp/%s.pcap" % (CAPTURE)
+		crt.Screen.Send (cmd8bc)
+	if VLAN_req == ('n') and VERBOSE_req == ('y') and c < 1001 and VERSION_req == ('n') and CLIENT_req1 ==('n') and CAPTURE_req == ('y') :
+		cmd8bd = cmd7bd + " -w /tmp/%s.pcap" % (CAPTURE)
+		crt.Screen.Send (cmd8bd)
+	
+	# *********** Version LOWER than 11.2 - using CLIENTIP, VIP and SNAT - CAPTURE = NO *********** cmd8c
+
+	if VLAN_req == ('n') and VERBOSE_req == ('n') and c < 1001 and VERSION_req == ('n') and CLIENT_req1 ==('y') and CAPTURE_req == ('n') :
+		cmd8ca = cmd7aa
+		crt.Screen.Send (cmd8ca)
+	if VLAN_req == ('y') and VERBOSE_req == ('y') and c < 1001 and VERSION_req == ('n') and CLIENT_req1 ==('y') and CAPTURE_req == ('n') :
+		cmd8cb = cmd7ab
+		crt.Screen.Send (cmd8cb)
+	if VLAN_req == ('y') and VERBOSE_req == ('n') and c < 1001 and VERSION_req == ('n') and CLIENT_req1 ==('y') and CAPTURE_req == ('n') :
+		cmd8cc = cmd7ac
+		crt.Screen.Send (cmd8cc)
+	if VLAN_req == ('n') and VERBOSE_req == ('y') and c < 1001 and VERSION_req == ('n') and CLIENT_req1 ==('y') and CAPTURE_req == ('n') :
+		cmd8cd = cmd7ad
+		crt.Screen.Send (cmd8cd)
+	
+	# *********** Version LOWER than 11.2 - using VIP and SNAT - CAPTURE = NO *********** cmd8d
+
+	if VLAN_req == ('n') and VERBOSE_req == ('n') and c < 1001 and VERSION_req == ('n') and CLIENT_req1 ==('n') and CAPTURE_req == ('n') :
+		cmd8da = cmd7ba
+		crt.Screen.Send (cmd8da)
+	if VLAN_req == ('y') and VERBOSE_req == ('y') and c < 1001 and VERSION_req == ('n') and CLIENT_req1 ==('n') and CAPTURE_req == ('n') :
+		cmd8db = cmd7bb
+		crt.Screen.Send (cmd8db)
+	if VLAN_req == ('y') and VERBOSE_req == ('n') and c < 1001 and VERSION_req == ('n') and CLIENT_req1 ==('n') and CAPTURE_req == ('n') :
+		cmd8dc = cmd7bc
+		crt.Screen.Send (cmd8dc)
+	if VLAN_req == ('n') and VERBOSE_req == ('y') and c < 1001 and VERSION_req == ('n') and CLIENT_req1 ==('n') and CAPTURE_req == ('n') :
+		cmd8dd = cmd7bd
+		crt.Screen.Send (cmd8dd)
+	
+main()
